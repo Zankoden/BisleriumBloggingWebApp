@@ -1,8 +1,7 @@
-﻿@model IEnumerable<BisleriumBloggingWebApp.Models.Blog>
-
-@{
+﻿@{
     ViewData["Title"] = "Index";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var reactionCounts = ViewData["ReactionCounts"] as Dictionary<int, (int, int)>; // Adjust the tuple type here
 }
 
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
@@ -64,10 +63,9 @@
     <div class="row">
         @foreach (var item in Model)
         {
+
             <div class="card mb-3">
                 <div class="card-body " onclick="window.location.href='@Url.Action("Details", "Blogs", new { id = @item.BlogID })';">
-
-
                     <div class="row">
                         <div class="col-md-8">
                             <div class="mb-3">
@@ -76,10 +74,21 @@
                                 <p class="truncate-3-lines">@item.Body</p>
                             </div>
                             <p class="text-muted no-wrap">Posted on: @item.CreatedDate.ToShortDateString()</p>
-                            <div class="vote-icons">
-                                <i class="fa-solid fa-circle-arrow-up" onclick="event.stopPropagation();"></i>
-                                <i class="fa-solid fa-circle-arrow-down" onclick="event.stopPropagation();"></i>
-                            </div>`
+
+                            <form asp-controller="Reactions" asp-action="CreateVoteReaction" method="post">
+                                <input type="hidden" name="BlogID" value="@item.BlogID" />
+                                <input type="hidden" name="UserID" value="1" /> <!-- Replace with the current user's ID -->
+                                <div class="vote-icons">
+                                    <button type="submit" class="btn btn-link" name="ReactionTypeID" value="1">
+                                        <i class="fa-solid fa-circle-arrow-up"></i>
+                                        <span>@(reactionCounts.ContainsKey(item.BlogID) ? reactionCounts[item.BlogID].Item1 : 0)</span> <!-- Use the actual upvote count -->
+                                    </button>
+                                    <button type="submit" class="btn btn-link" name="ReactionTypeID" value="2">
+                                        <i class="fa-solid fa-circle-arrow-down"></i>
+                                        <span>@(reactionCounts.ContainsKey(item.BlogID) ? reactionCounts[item.BlogID].Item2 : 0)</span> <!-- Use the actual downvote count -->
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                         <div class="col-md-4">
                             <div class="mb-3 profile-image">
@@ -92,6 +101,12 @@
         }
     </div>
 </div>
+
+
+
+
+
+
 
 
 

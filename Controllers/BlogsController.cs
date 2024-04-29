@@ -26,7 +26,15 @@ namespace BisleriumBloggingWebApp.Controllers
         // GET: Blogs
         public async Task<IActionResult> Index()
         {
+
             var myDbContext = _context.Blogs.Include(b => b.User);
+            var blogs = await myDbContext.ToListAsync();
+            var reactionCounts = await GetReactionCounts();
+
+            ViewData["ReactionCounts"] = reactionCounts;
+
+
+            //var myDbContext = _context.Blogs.Include(b => b.User);
             return View(await myDbContext.ToListAsync());
         }
 
@@ -175,6 +183,41 @@ namespace BisleriumBloggingWebApp.Controllers
         private bool BlogExists(int id)
         {
             return _context.Blogs.Any(e => e.BlogID == id);
+        }
+
+        ///to retrieve the user's reaction for a specific blog post
+        //private async Task<Reaction?> GetUserReactionForBlog(int blogId, int userId)
+        //{
+        //    return await _context.Reactions
+        //        .FirstOrDefaultAsync(r => r.BlogID == blogId && r.UserID == userId);
+        //}
+
+        private async Task<Dictionary<int, (int upvotes, int downvotes)>> GetReactionCounts()
+        {
+            var reactionCounts = new Dictionary<int, (int upvotes, int downvotes)>();
+
+            var upvoteReactionTypeId = _context.ReactionTypes.FirstOrDefault(rt => rt.ReactionName == "Up Vote")?.ReactionTypeID;
+            var downvoteReactionTypeId = _context.ReactionTypes.FirstOrDefault(rt => rt.ReactionName == "Down Vote")?.ReactionTypeID;
+
+            if (upvoteReactionTypeId != null && downvoteReactionTypeId != null)
+            {
+                var upvotes = await _context.Reactions
+                    .Where(r => r.ReactionTypeID == upvoteReactionTypeId)
+                    .GroupBy(r => r.BlogID)
+                    .ToDictionaryAsync(g => g.Key, g => g.Count());
+
+                var downvotes = await _context.Reactions
+                    .Where(r => r.ReactionTypeID == downvoteReactionTypeId)
+                    .GroupBy(r => r.BlogID)
+                    .ToDictionaryAsync(g => g.Key, g => g.Count());
+
+                foreach (var blogId in upvotes.Keys.Union(downvotes.Keys))
+                {
+                    reactionCounts[blogId] = (upvotes.GetValueOrDefault(blogId, 0), downvotes.GetValueOrDefault(blogId, 0));
+                }
+            }
+
+            return reactionCounts;
         }
     }
 }
